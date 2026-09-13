@@ -1,0 +1,16 @@
+[package]
+name = "connect2-tauri"
+version = "0.1.0"
+edition = "2021"
+description = "Native Connect 2 window (Tauri 2 / WebKitGTK). Starts the loopback hub in-process."
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+connect2 = { path = "..", package = "connect2-agent", default-features = false, features = ["web"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
+serde_json = "1"
+tauri = { version = "2", features = [] }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }

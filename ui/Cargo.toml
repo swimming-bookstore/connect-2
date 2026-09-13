@@ -1,0 +1,38 @@
+[package]
+name = "connect2-ui"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+name = "connect2_ui"
+
+[dependencies]
+leptos = { version = "0.7.8", features = ["csr"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+gloo-net = { version = "0.6", default-features = false, features = ["http", "json"] }
+js-sys = "=0.3.77"
+wasm-bindgen = "=0.2.100"
+wasm-bindgen-futures = "=0.4.50"
+console_error_panic_hook = "0.1"
+futures-channel = "0.3"
+futures-util = "0.3"
+web-sys = { version = "=0.3.77", features = [
+    "Document",
+    "Element",
+    "Event",
+    "EventTarget",
+    "HtmlElement",
+    "HtmlImageElement",
+    "HtmlInputElement",
+    "KeyboardEvent",
+    "History",
+    "Location",
+    "MessageEvent",
+    "MouseEvent",
+    "Node",
+    "Storage",
+    "WebSocket",
+    "Window",
+] }

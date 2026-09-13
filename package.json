@@ -1,0 +1,14 @@
+{
+  "name": "connect2-web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "css": "mkdir -p ui/public && tailwindcss -i ui/css/app.css -o ui/public/style.css",
+    "css:watch": "mkdir -p ui/public && tailwindcss -i ui/css/app.css -o ui/public/style.css --watch"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.1.12",
+    "daisyui": "^5.7.36",
+    "tailwindcss": "^4.1.12"
+  }
+}

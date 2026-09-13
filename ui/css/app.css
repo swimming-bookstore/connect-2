@@ -1,0 +1,460 @@
+@import "tailwindcss";
+@plugin "daisyui" {
+  themes: [];
+}
+@plugin "daisyui/theme" {
+  name: "light";
+  default: true;
+  --color-primary: #000000;
+  --color-primary-content: #ffffff;
+  --color-secondary: #171717;
+  --color-secondary-content: #ffffff;
+}
+@plugin "daisyui/theme" {
+  name: "dark";
+  prefersdark: true;
+  --color-primary: #ffffff;
+  --color-primary-content: #000000;
+  --color-secondary: #e5e5e5;
+  --color-secondary-content: #000000;
+}
+@source "../src/**/*.rs";
+@source "../js/**/*.js";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+@layer base {
+  html,
+  body {
+    @apply m-0 overflow-hidden bg-base-200 font-sans text-sm text-base-content antialiased;
+    width: 100%;
+    height: 100%;
+    height: 100dvh;
+    --col-chats: 16rem;
+    --col-ai: 20rem;
+  }
+  html {
+    width: 100%;
+    height: 100%;
+    height: 100dvh;
+  }
+  body {
+    position: relative;
+  }
+  #main {
+    position: absolute;
+    inset: 0;
+  }
+  #main,
+  .shell {
+    @apply flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden;
+  }
+}
+
+@layer components {
+  .off {
+    display: none !important;
+  }
+
+  #term.off,
+  #stage.off,
+  #live.off,
+  #agent.off,
+  #chrome.off {
+    display: none !important;
+  }
+
+  .navbar.top-bar,
+  .desk {
+    display: grid;
+    grid-template-columns: var(--col-chats) minmax(0, 1fr) var(--col-ai);
+    width: 100%;
+    min-width: 0;
+    gap: 0;
+  }
+
+  .navbar.top-bar {
+    display: grid !important;
+    align-items: stretch;
+    min-height: 3.5rem;
+    flex-shrink: 0;
+    padding: 0 !important;
+    @apply border-b border-base-300 bg-base-200;
+  }
+
+  .nav-brand,
+  .nav-room,
+  .nav-ai,
+  .navbar.top-bar > .navbar-start,
+  .navbar.top-bar > .navbar-center,
+  .navbar.top-bar > .navbar-end {
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0;
+    flex: none;
+    justify-content: flex-start;
+    @apply flex items-center gap-2 px-3;
+  }
+
+  .nav-brand {
+    justify-content: flex-start;
+  }
+
+  .nav-ai,
+  .navbar.top-bar > .navbar-end {
+    position: relative;
+    justify-content: flex-end !important;
+  }
+
+  .nav-ai [data-testid="ai-new"] {
+    margin-right: auto;
+  }
+
+  .nav-brand,
+  .nav-room {
+    @apply border-r border-base-300;
+  }
+
+  .nav-actions {
+    @apply ml-auto flex min-w-0 shrink-0 items-center gap-1;
+  }
+
+  .nav-room {
+    position: relative;
+  }
+
+  .nav-room #nav,
+  .nav-work {
+    @apply ml-auto flex shrink-0 items-center gap-1;
+  }
+
+  .box-name,
+  .ai-name {
+    @apply pointer-events-none text-base-content/70 max-w-[40%] truncate text-sm font-medium;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .desk {
+    @apply min-h-0 min-w-0 flex-1 p-0;
+  }
+
+  .chats,
+  .room,
+  .ai-pane {
+    @apply flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-none bg-base-100 shadow-none;
+  }
+
+  .chats,
+  .room {
+    @apply relative z-0 overflow-hidden border-r border-base-300;
+    isolation: isolate;
+  }
+
+  .chats {
+    @apply bg-base-200;
+  }
+
+  .chats-list {
+    @apply bg-base-200 min-h-0 flex-1 overflow-auto;
+  }
+
+  .chats-list li > button {
+    @apply box-border w-full min-h-12 justify-start py-3;
+    transition: none !important;
+  }
+
+  #agent .chat,
+  .chat-log .chat {
+    @apply w-full max-w-full;
+  }
+
+  .brand {
+    @apply flex cursor-pointer items-center gap-2 border-0 bg-transparent p-0 text-inherit no-underline shadow-none;
+    background: transparent !important;
+    box-shadow: none !important;
+    outline: none !important;
+  }
+
+  .brand:hover,
+  .brand:focus,
+  .brand:focus-visible,
+  .brand:active {
+    background: transparent !important;
+    box-shadow: none !important;
+    outline: none !important;
+    opacity: 1;
+    filter: none;
+  }
+
+  .session,
+  .page {
+    @apply relative z-0 flex min-h-0 flex-1 flex-col overflow-hidden;
+  }
+
+  .page {
+    @apply overflow-auto;
+  }
+
+  .wrap {
+    @apply mx-auto flex w-full max-w-lg flex-col gap-6 px-8 py-10;
+  }
+
+  .settings-page {
+    @apply bg-base-200;
+  }
+
+  .settings-wrap {
+    @apply max-w-xl gap-5 px-6 py-8;
+  }
+
+  .settings-head {
+    @apply flex items-start gap-3;
+  }
+
+  .settings-form {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1.25rem;
+    width: 100%;
+  }
+
+  .settings-form .select {
+    display: block;
+    width: 100%;
+    height: 2.75rem;
+    min-height: 2.75rem;
+    max-height: 2.75rem;
+    appearance: auto;
+    -webkit-appearance: menulist;
+  }
+
+  .settings-form [data-testid="video-save"] {
+    position: relative;
+    z-index: 1;
+  }
+
+  #stage-wrap {
+    @apply bg-base-100 relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden;
+  }
+
+  .pane {
+    @apply flex min-h-0 min-w-0 flex-1;
+    flex-basis: 0;
+  }
+
+  #term.pane:not(.off) {
+    display: flex;
+    flex-direction: column;
+    min-height: 12rem;
+    height: 100%;
+  }
+
+  #stage,
+  #live {
+    @apply bg-neutral relative overflow-hidden;
+  }
+
+  #view,
+  #rtc {
+    @apply bg-neutral block h-full w-full cursor-crosshair object-contain outline-none;
+    overscroll-behavior: none;
+    touch-action: none;
+  }
+
+  #view:not([src]),
+  #view[src=""] {
+    visibility: hidden;
+  }
+
+  #view-next {
+    @apply pointer-events-none absolute size-px opacity-0;
+  }
+
+  #chrome #tabs {
+    @apply flex h-10 min-h-10 flex-nowrap items-center overflow-x-auto overflow-y-hidden;
+  }
+
+  #chrome #tabs .tab {
+    @apply inline-flex h-10 max-h-10 max-w-48 min-w-0 shrink-0 flex-nowrap items-center gap-1 overflow-hidden whitespace-nowrap;
+    flex-wrap: nowrap !important;
+  }
+
+  #chrome #tabs .tab-label {
+    @apply min-w-0 flex-1 truncate leading-none;
+  }
+
+  #chrome #tabs .x {
+    @apply ml-0 inline-flex h-5 w-5 shrink-0 items-center justify-center leading-none opacity-60;
+  }
+
+  #term {
+    @apply bg-neutral text-neutral-content relative z-0 min-h-0 min-w-0 overflow-hidden p-3;
+  }
+
+  #term .xterm {
+    @apply relative h-full w-full overflow-hidden;
+  }
+
+  #term .xterm-helpers,
+  #term .xterm-helper-textarea {
+    left: 0 !important;
+    top: 0 !important;
+    width: 0 !important;
+    height: 0 !important;
+    max-width: 0 !important;
+    max-height: 0 !important;
+    overflow: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+
+  #term .xterm-viewport {
+    overflow-y: auto;
+  }
+
+  #agent {
+    @apply bg-base-100 flex-col;
+  }
+
+  #url,
+  #q,
+  .chat-in textarea {
+    flex: 1 1 auto;
+    min-width: 8rem;
+    pointer-events: auto;
+    position: relative;
+    z-index: 1;
+  }
+
+  .ai-pane {
+    position: relative;
+    z-index: 3;
+    isolation: isolate;
+    pointer-events: auto;
+  }
+
+  .ai-pane .chat-in,
+  .ai-pane #ai-q,
+  .ai-pane .chat-in button {
+    pointer-events: auto;
+    position: relative;
+    z-index: 4;
+  }
+
+  .session [data-testid="box-loading"] {
+    pointer-events: auto;
+  }
+}
+
+@media (max-width: 1100px) {
+  html,
+  body {
+    --col-chats: 14rem;
+    --col-ai: 16rem;
+  }
+}
+
+.phone-dock {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  .navbar.top-bar,
+  .desk {
+    display: flex !important;
+    grid-template-columns: none;
+    width: 100%;
+  }
+
+  .navbar.top-bar {
+    min-height: 3rem;
+    padding-left: env(safe-area-inset-left) !important;
+    padding-right: env(safe-area-inset-right) !important;
+  }
+
+  .nav-brand,
+  .nav-room,
+  .nav-ai,
+  .navbar.top-bar > .navbar-start,
+  .navbar.top-bar > .navbar-center,
+  .navbar.top-bar > .navbar-end {
+    border-right-width: 0;
+    width: auto !important;
+    flex: 0 1 auto;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+
+  .nav-brand {
+    flex: 0 0 auto;
+  }
+
+  .nav-room,
+  .nav-ai {
+    flex: 1 1 auto;
+    min-width: 0;
+    justify-content: flex-end !important;
+  }
+
+  .nav-ai [data-testid="ai-new"] {
+    margin-right: 0;
+  }
+
+  .box-name,
+  .ai-name {
+    position: static;
+    left: auto;
+    transform: none;
+    max-width: 40%;
+    pointer-events: none;
+  }
+
+  .shell.phone-chats .nav-room,
+  .shell.phone-chats .nav-ai,
+  .shell.phone-room .nav-ai,
+  .shell.phone-ai .nav-room {
+    display: none !important;
+  }
+
+  .desk {
+    @apply min-h-0 flex-1 flex-col;
+  }
+
+  .chats,
+  .room,
+  .ai-pane {
+    display: none !important;
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    border-right-width: 0;
+    border-bottom-width: 0;
+  }
+
+  .shell.phone-chats .chats,
+  .shell.phone-room .room,
+  .shell.phone-ai .ai-pane {
+    display: flex !important;
+  }
+
+  .phone-dock {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: space-around;
+    min-height: 3.25rem;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+html {
+  --color-primary: #000000;
+  --color-primary-content: #ffffff;
+}
+html[data-theme="dark"] {
+  --color-primary: #ffffff;
+  --color-primary-content: #000000;
+}

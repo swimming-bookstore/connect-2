@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html data-theme="light">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Connect 2</title>
+<script>
+try {
+  var t = localStorage.getItem("connect2-theme");
+  document.documentElement.setAttribute("data-theme", t === "dark" ? "dark" : "light");
+} catch (e) {}
+</script>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="xterm.css">
+<body>
+<p id="boot">loading…</p>
+<div id="main"></div>
+<script src="xterm.js"></script>
+<script src="xterm-addon-fit.js"></script>
+<script src="ports.js"></script>
+<script type="module">
+  import init from "./pkg/connect2_ui.js";
+  try {
+    await init({ module_or_path: "./pkg/connect2_ui_bg.wasm" });
+  } catch (e) {
+    document.getElementById("boot").textContent = String(e && e.message ? e.message : e);
+  }
+</script>
