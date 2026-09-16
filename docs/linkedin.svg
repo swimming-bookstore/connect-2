@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080" viewBox="0 0 1080 1080" role="img" aria-label="Connect 2 — use AI to control your boxes">
+  <rect width="1080" height="1080" fill="#fff9ef"/>
+
+  <text x="540" y="92" text-anchor="middle" font-family="Outfit, ui-sans-serif, system-ui, sans-serif" font-size="22" font-weight="500" letter-spacing="8" fill="#6a5c4e">DEVOPS ESSENTIALS</text>
+  <text x="540" y="188" text-anchor="middle" font-family="Cormorant Garamond, Noto Serif KR, serif" font-size="92" font-weight="600" fill="#1d3550">Connect 2</text>
+  <text x="540" y="248" text-anchor="middle" font-family="Cormorant Garamond, serif" font-style="italic" font-size="32" fill="#6a5c4e">Use AI to control your boxes.</text>
+
+  <!-- both sides dial out to Teleport -->
+  <path d="M 277 460 H 432" fill="none" stroke="#1d3550" stroke-width="2.5"/>
+  <path d="M 648 460 H 803" fill="none" stroke="#1d3550" stroke-width="2.5"/>
+
+  <!-- connect 2 web / desktop -->
+  <circle cx="175" cy="460" r="102" fill="#fff9ef" stroke="#1d3550" stroke-width="2.5"/>
+  <text x="175" y="428" text-anchor="middle" font-family="Cormorant Garamond, serif" font-size="32" font-weight="600" fill="#1d3550">Connect 2</text>
+  <text x="175" y="466" text-anchor="middle" font-family="Cormorant Garamond, serif" font-size="32" font-weight="600" fill="#1d3550">web /</text>
+  <text x="175" y="504" text-anchor="middle" font-family="Cormorant Garamond, serif" font-size="32" font-weight="600" fill="#1d3550">desktop</text>
+
+  <!-- teleport -->
+  <circle cx="540" cy="460" r="108" fill="#1d3550"/>
+  <text x="540" y="474" text-anchor="middle" font-family="Cormorant Garamond, serif" font-size="40" font-weight="600" fill="#fff9ef">Teleport</text>
+
+  <!-- connect 2 agent -->
+  <circle cx="905" cy="460" r="102" fill="#fff9ef" stroke="#1d3550" stroke-width="2.5"/>
+  <text x="905" y="444" text-anchor="middle" font-family="Cormorant Garamond, serif" font-size="32" font-weight="600" fill="#1d3550">Connect 2</text>
+  <text x="905" y="490" text-anchor="middle" font-family="Cormorant Garamond, serif" font-size="32" font-weight="600" fill="#1d3550">agent</text>
+
+  <polygon points="366,460 344,448 344,472" fill="#1d3550"/>
+  <polygon points="715,460 737,448 737,472" fill="#1d3550"/>
+
+  <text x="540" y="640" text-anchor="middle" font-family="Outfit, ui-sans-serif, system-ui, sans-serif" font-size="20" font-weight="500" letter-spacing="6" fill="#6a5c4e">ADDITIONAL FEATURES</text>
+
+  <text x="540" y="720" text-anchor="middle" font-family="Cormorant Garamond, serif" font-size="56" font-weight="600" fill="#1d3550">Shell</text>
+  <text x="540" y="798" text-anchor="middle" font-family="Cormorant Garamond, serif" font-size="56" font-weight="600" fill="#1d3550">Browser</text>
+  <text x="540" y="876" text-anchor="middle" font-family="Cormorant Garamond, serif" font-size="56" font-weight="600" fill="#1d3550">Agent</text>
+
+  <text x="540" y="1000" text-anchor="middle" font-family="Noto Serif KR, Cormorant Garamond, serif" font-size="22" fill="#6a5c4e">© 수영 책방 Swimming Bookstore</text>
+</svg>
