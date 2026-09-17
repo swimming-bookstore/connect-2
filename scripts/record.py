@@ -449,7 +449,7 @@ def totp_fresh(used: set[str] | None = None) -> str:
     secret = TOTP_SECRET.read_text().strip().replace(" ", "")
     while True:
         left = 30 - int(time.time() % 30)
-        if left < 4:
+        if left < 1.5:
             time.sleep(left + 0.05)
         code = totp_code(secret)
         if used is None or code not in used:
@@ -457,6 +457,19 @@ def totp_fresh(used: set[str] | None = None) -> str:
                 used.add(code)
             return code
         time.sleep(left + 0.05)
+
+
+def totp_wait_unused(used: set[str], min_left: float = 8.0) -> None:
+    """Sleep until the current TOTP window is unused and has time left."""
+    if not TOTP_SECRET.exists():
+        die(f"TOTP secret missing at {TOTP_SECRET}")
+    secret = TOTP_SECRET.read_text().strip().replace(" ", "")
+    while True:
+        left = 30.0 - (time.time() % 30.0)
+        code = totp_code(secret)
+        if code not in used and left >= min_left:
+            return
+        time.sleep(min(0.2, max(left + 0.05, 0.05)))
 
 
 def boot_client(identity: Path) -> None:
@@ -657,6 +670,16 @@ def wait_page(pred, secs: float, label: str) -> dict:
     die(f"timeout {label} last={last!r}")
 
 
+def reattach(old: Ws | None = None) -> Ws:
+    if old is not None:
+        try:
+            old.close()
+        except OSError:
+            pass
+    page = wait_page(lambda t: bool(t.get("webSocketDebuggerUrl")), 15, "chrome reattach")
+    return attach_page(page)
+
+
 def attach_chrome(url: str) -> Ws:
     chrome = shutil.which("chromium") or shutil.which("google-chrome") or os.environ.get("CHROME")
     if not chrome:
@@ -759,19 +782,36 @@ def type_keys(ws: Ws, text: str, delay: float = 0.08) -> None:
 
 
 def clear_input(ws: Ws, selector: str) -> None:
-    js(
+    focus_sel(ws, selector)
+    key_event(
         ws,
-        f"""(() => {{
-          const i = document.querySelector({json.dumps(selector)});
-          if (!i) return;
-          i.focus();
-          const proto = Object.getOwnPropertyDescriptor(
-            i.tagName === 'TEXTAREA' ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype,
-            'value'
-          );
-          proto.set.call(i, '');
-          i.dispatchEvent(new Event('input', {{bubbles: true}}));
-        }})()""",
+        "keyDown",
+        key="a",
+        code="KeyA",
+        windowsVirtualKeyCode=65,
+        modifiers=2,
+    )
+    key_event(
+        ws,
+        "keyUp",
+        key="a",
+        code="KeyA",
+        windowsVirtualKeyCode=65,
+        modifiers=2,
+    )
+    key_event(
+        ws,
+        "keyDown",
+        key="Backspace",
+        code="Backspace",
+        windowsVirtualKeyCode=8,
+    )
+    key_event(
+        ws,
+        "keyUp",
+        key="Backspace",
+        code="Backspace",
+        windowsVirtualKeyCode=8,
     )
 
 
@@ -796,23 +836,20 @@ def click_sel(ws: Ws, selector: str) -> None:
     time.sleep(0.2)
 
 
-def type_input(ws: Ws, selector: str, text: str, submit: bool = True) -> None:
+def type_input(
+    ws: Ws,
+    selector: str,
+    text: str,
+    submit: bool = True,
+    delay: float = 0.07,
+) -> None:
     focus_sel(ws, selector)
     clear_input(ws, selector)
-    time.sleep(0.2)
-    for ch in text:
-        js(
-            ws,
-            f"""(() => {{
-              const i = document.querySelector({json.dumps(selector)});
-              if (!i) return;
-              const proto = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value');
-              proto.set.call(i, (i.value || '') + {json.dumps(ch)});
-              i.dispatchEvent(new Event('input', {{bubbles: true}}));
-            }})()""",
-        )
-        time.sleep(0.07)
-    time.sleep(0.25)
+    if delay > 0.03:
+        time.sleep(0.12)
+    type_keys(ws, text, delay=max(delay, 0.01))
+    if delay > 0.03:
+        time.sleep(0.15)
     if submit:
         if selector == "#q":
             click_sel(ws, "#ask button")
@@ -821,6 +858,10 @@ def type_input(ws: Ws, selector: str, text: str, submit: bool = True) -> None:
         else:
             type_keys(ws, "\n", delay=0.05)
         time.sleep(0.2)
+
+
+def type_otp(ws: Ws, selector: str, code: str) -> None:
+    type_input(ws, selector, code, submit=False, delay=0.015)
 
 
 def type_ai(ws: Ws, text: str) -> None:
@@ -837,13 +878,17 @@ def type_ai(ws: Ws, text: str) -> None:
     type_input(ws, "#ai-q", text, submit=True)
 
 
-def type_placeholder(ws: Ws, placeholder: str, text: str) -> None:
+def type_placeholder(
+    ws: Ws, placeholder: str, text: str, delay: float | None = None
+) -> None:
     sel = f'input[placeholder={json.dumps(placeholder)}]'
     wait_js(ws, f"!!document.querySelector({json.dumps(sel)})", 20, placeholder)
-    type_input(ws, sel, text, submit=False)
+    if delay is None:
+        delay = 0.015 if placeholder == "123 456" else 0.07
+    type_input(ws, sel, text, submit=False, delay=delay)
 
 
-def teleport_web_login(ws: Ws) -> None:
+def teleport_web_login(ws: Ws) -> Ws:
     js(
         ws,
         """localStorage.setItem('grv_teleport_license_acknowledged', 'true');""",
@@ -872,9 +917,8 @@ def teleport_web_login(ws: Ws) -> None:
         "teleport username",
     )
     print("teleport web login")
-    hold(0.8)
-    type_placeholder(ws, "Username", DEMO_USER)
-    type_placeholder(ws, "Password", DEMO_PASSWORD)
+    type_placeholder(ws, "Username", DEMO_USER, delay=0.03)
+    type_placeholder(ws, "Password", DEMO_PASSWORD, delay=0.03)
     wait_js(
         ws,
         """!!document.querySelector('input[placeholder="123 456"]')""",
@@ -882,27 +926,50 @@ def teleport_web_login(ws: Ws) -> None:
         "teleport otp",
     )
     type_placeholder(ws, "123 456", totp_fresh(TOTP_USED))
-    hold(0.3)
-    js(
-        ws,
-        """(() => {
-          const b = [...document.querySelectorAll('button')].find(
-            (el) => (el.textContent || '').trim() === 'Sign In'
-          );
-          if (b) b.click();
-        })()""",
-    )
-    wait_js(
-        ws,
-        """(() => {
-          const t = document.body ? document.body.innerText : '';
-          return t.includes('box-1') && t.includes('box-2') && t.includes('box-3');
-        })()""",
-        35,
-        "teleport boxes",
-    )
+    try:
+        js(
+            ws,
+            """(() => {
+              const b = [...document.querySelectorAll('button')].find(
+                (el) => (el.textContent || '').trim() === 'Sign In'
+              );
+              if (b) b.click();
+            })()""",
+        )
+    except RuntimeError:
+        print("  cdp closed on sign-in")
+        ws = reattach(ws)
+    signed_in = """(() => {
+      const user = document.querySelector('input[placeholder="Username"]');
+      const otp = document.querySelector('input[placeholder="123 456"]');
+      const t = document.body ? document.body.innerText : '';
+      if (user || otp) return false;
+      return t.includes('box-1') || t.includes('Resources') || t.includes('Servers');
+    })()"""
+    deadline = time.time() + 12
+    last = None
+    while time.time() < deadline:
+        try:
+            last = js(ws, signed_in)
+            if last:
+                print("  ok teleport signed in")
+                break
+        except RuntimeError:
+            print("  cdp reconnect after teleport sign-in")
+            ws = reattach(ws)
+        time.sleep(0.15)
+    else:
+        try:
+            dump = js(
+                ws,
+                "document.body ? document.body.innerText.slice(0, 800) : ''",
+            )
+        except RuntimeError as e:
+            dump = f"<cdp {e}>"
+        die(f"timeout teleport sign-in last={last!r} text={dump!r}")
     print("teleport dashboard")
-    hold(3.0)
+    hold(0.4)
+    return ws
 
 
 def navigate(ws: Ws, url: str) -> None:
@@ -1018,6 +1085,7 @@ def main() -> int:
     assert ff.stdin is not None
 
     stop = threading.Event()
+    pause_cap = threading.Event()
     nframes = {"n": 0}
 
     def pump() -> None:
@@ -1027,6 +1095,9 @@ def main() -> int:
         while not stop.is_set():
             if time.monotonic() - t0 > MAX_SEC:
                 break
+            if pause_cap.is_set():
+                time.sleep(tick)
+                continue
             frame = grab_bgr(dpy, wid, w, h, redirected)
             if frame is None:
                 frame = last
@@ -1049,7 +1120,10 @@ def main() -> int:
     cap.start()
 
     try:
-        teleport_web_login(ws)
+        ws = teleport_web_login(ws)
+        pause_cap.set()
+        totp_wait_unused(TOTP_USED)
+        pause_cap.clear()
         navigate(ws, f"{HTTP_URL}/")
         wait_js(
             ws,
@@ -1058,11 +1132,9 @@ def main() -> int:
             "connect2 login",
         )
         print("connect2 login")
-        hold(1.0)
-        type_input(ws, '[data-testid="cluster-user"]', DEMO_USER, submit=False)
-        type_input(ws, '[data-testid="cluster-password"]', DEMO_PASSWORD, submit=False)
-        type_input(ws, '[data-testid="cluster-otp"]', totp_fresh(TOTP_USED), submit=False)
-        hold(0.4)
+        type_input(ws, '[data-testid="cluster-user"]', DEMO_USER, submit=False, delay=0.04)
+        type_input(ws, '[data-testid="cluster-password"]', DEMO_PASSWORD, submit=False, delay=0.04)
+        type_otp(ws, '[data-testid="cluster-otp"]', totp_fresh(TOTP_USED))
         click_sel(ws, '[data-testid="cluster-login"]')
         wait_pred(
             lambda s: s.get("authed") and len(s.get("peers") or []) >= 3,
