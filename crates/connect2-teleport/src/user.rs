@@ -582,6 +582,25 @@ fn parse_list_resources(body: &[u8]) -> Vec<Node> {
             i += 2;
             continue;
         }
+        let name = &strings[i];
+        if name.starts_with("box-")
+            && name
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '-')
+        {
+            let id = strings
+                .iter()
+                .take(i)
+                .rev()
+                .find(|s| s.len() == 36 && s.chars().filter(|c| *c == '-').count() == 4)
+                .cloned()
+                .unwrap_or_else(|| name.clone());
+            nodes.push(Node {
+                id,
+                name: name.clone(),
+                tunnel: true,
+            });
+        }
         i += 1;
     }
     nodes.sort_by(|a, b| a.name.cmp(&b.name));

@@ -490,7 +490,7 @@ async fn run_desk_tool(
             let before = view.borrow().log.len();
             match pipe.write(In::AiUser { text: text.into() }).await {
                 Ok(()) => {
-                    let _ = wait_agent_reply(view, before, 8).await;
+                    let _ = wait_agent_reply(view, before, 20).await;
                     format!("sent to agent: {text}")
                 }
                 Err(e) => format!("{e:#}"),
