@@ -303,6 +303,14 @@ fn demo_completion(messages: &Value, tools: &Value) -> Option<Completion> {
     let last = arr.last()?;
     let role = last.get("role")?.as_str()?;
     if tool_named(tools, "bash") || tool_named(tools, "read") {
+        let user = last_user(messages).unwrap_or_default();
+        let low_user = user.to_ascii_lowercase();
+        if low_user.contains("hello") || low_user.contains("swimming") {
+            return Some(Completion {
+                content: "hello 수영 책방 Swimming Bookstore".into(),
+                tool_calls: Vec::new(),
+            });
+        }
         let content = if role == "tool" {
             last.get("content")
                 .and_then(|v| v.as_str())
@@ -348,13 +356,15 @@ fn demo_completion(messages: &Value, tools: &Value) -> Option<Completion> {
             )],
         });
     }
-    if low.contains("agent") || low.contains("src/") || low.contains("rust") {
+    if low.contains("agent") || low.contains("src/") || low.contains("rust") || low.contains("box-3") {
+        let text = if low.contains("hello") || low.contains("swimming") {
+            "say hello to 수영 책방 Swimming Bookstore"
+        } else {
+            "list the Rust modules in src/"
+        };
         return Some(Completion {
             content: String::new(),
-            tool_calls: vec![demo_call(
-                "ask_agent",
-                json!({"machine":"box-3","text":"list the Rust modules in src/"}),
-            )],
+            tool_calls: vec![demo_call("ask_agent", json!({"machine":"box-3","text": text}))],
         });
     }
     Some(Completion {
