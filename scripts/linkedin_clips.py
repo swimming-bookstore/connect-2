@@ -2,6 +2,9 @@
 """Record three ~10s LinkedIn 1080×1080 clips.
 
 Each take starts mid-type in Ask AI (~1–2s before Enter), then Enter and the reply.
+The full Connect 2 window is scaled into the square (no crop). Demo CSS + xterm
+fonts are bumped so the UI stays readable. Files use a ~320 kb/s floor
+(LinkedIn rejects videos under 75 KB).
 """
 
 from __future__ import annotations
@@ -106,6 +109,16 @@ def bar_png(path: Path, title: str) -> None:
     surf.write_to_png(str(path))
 
 
+VIDEO_W, VIDEO_H = 1080, 675
+# LinkedIn native video rejects files under 75 KB.
+MIN_BPS = 320_000
+MIN_BYTES = 80_000
+DEMO_FONT_PX = 16
+TERM_FONT_PX = 16
+DEMO_ZOOM = 1
+WIN_W, WIN_H = 1280, 800
+
+
 def probe_dur(path: Path) -> float:
     out = subprocess.check_output(
         [
@@ -121,6 +134,67 @@ def probe_dur(path: Path) -> float:
         text=True,
     ).strip()
     return float(out)
+
+
+def probe_wh(path: Path) -> tuple[int, int]:
+    out = subprocess.check_output(
+        [
+            "ffprobe",
+            "-v",
+            "error",
+            "-select_streams",
+            "v:0",
+            "-show_entries",
+            "stream=width,height",
+            "-of",
+            "csv=p=0",
+            str(path),
+        ],
+        text=True,
+    ).strip()
+    w, h = out.split(",")
+    return int(w), int(h)
+
+
+def fit_vf(src_w: int, src_h: int, out_w: int = VIDEO_W, out_h: int = VIDEO_H) -> str:
+    """Letterbox the full Connect 2 window into the square slot (no crop)."""
+    s = min(out_w / max(src_w, 1), out_h / max(src_h, 1))
+    w = max(2, int(src_w * s)) & ~1
+    h = max(2, int(src_h * s)) & ~1
+    w = min(w, out_w - (out_w % 2))
+    h = min(h, out_h - (out_h % 2))
+    return (
+        f"scale={w}:{h}:flags=lanczos,setsar=1,"
+        f"pad={out_w}:{out_h}:({out_w}-iw)/2:({out_h}-ih)/2:color=0xFFF9EF"
+    )
+
+
+def encode_v() -> list[str]:
+    return [
+        "-an",
+        "-c:v",
+        "libx264",
+        "-pix_fmt",
+        "yuv420p",
+        "-profile:v",
+        "high",
+        "-b:v",
+        str(MIN_BPS),
+        "-minrate",
+        str(MIN_BPS),
+        "-maxrate",
+        str(MIN_BPS),
+        "-bufsize",
+        str(MIN_BPS * 2),
+        "-x264-params",
+        "nal-hrd=cbr:force-cfr=1",
+        "-preset",
+        "slow",
+        "-r",
+        str(rec.FPS),
+        "-movflags",
+        "+faststart",
+    ]
 
 
 def fit_clip(
@@ -223,6 +297,8 @@ def square(
         clip = Path(d) / "clip.mp4"
         bar_png(bg, title)
         fit_clip(raw, clip, keep_s, head_end, tail_start)
+        sw, sh = probe_wh(clip)
+        inner = fit_vf(sw, sh)
         subprocess.check_call(
             [
                 rec.ffmpeg_bin(),
@@ -237,25 +313,132 @@ def square(
                 "-i",
                 str(clip),
                 "-filter_complex",
-                "[1:v]scale=1080:675:flags=lanczos[v];[0:v][v]overlay=(W-w)/2:178:shortest=1",
-                "-an",
-                "-c:v",
-                "libx264",
-                "-pix_fmt",
-                "yuv420p",
-                "-profile:v",
-                "high",
-                "-crf",
-                "18",
-                "-preset",
-                "slow",
-                "-r",
-                str(rec.FPS),
-                "-movflags",
-                "+faststart",
+                f"[1:v]{inner}[v];[0:v][v]overlay=(W-w)/2:178:shortest=1",
+                *encode_v(),
                 str(out),
             ]
         )
+        if out.stat().st_size < MIN_BYTES:
+            rec.die(f"{out} is {out.stat().st_size} bytes, LinkedIn needs >75KB")
+
+
+def reframe_existing() -> None:
+    """Fit the already-exported square's inner 1080×675 (full window, no extra crop)."""
+    for name, title, *_rest in CLIPS:
+        src = ROOT / "docs" / f"linkedin-{name}.mp4"
+        if not src.exists():
+            rec.die(f"missing {src}")
+        with tempfile.TemporaryDirectory() as d:
+            inner = Path(d) / "inner.mp4"
+            bg = Path(d) / "bg.png"
+            out = Path(d) / "out.mp4"
+            subprocess.check_call(
+                [
+                    rec.ffmpeg_bin(),
+                    "-hide_banner",
+                    "-loglevel",
+                    "error",
+                    "-y",
+                    "-i",
+                    str(src),
+                    "-vf",
+                    "crop=1080:675:0:178",
+                    "-an",
+                    "-c:v",
+                    "libx264",
+                    "-pix_fmt",
+                    "yuv420p",
+                    "-crf",
+                    "12",
+                    "-preset",
+                    "fast",
+                    str(inner),
+                ]
+            )
+            bar_png(bg, title)
+            sw, sh = probe_wh(inner)
+            vf = fit_vf(sw, sh)
+            subprocess.check_call(
+                [
+                    rec.ffmpeg_bin(),
+                    "-hide_banner",
+                    "-loglevel",
+                    "error",
+                    "-y",
+                    "-loop",
+                    "1",
+                    "-i",
+                    str(bg),
+                    "-i",
+                    str(inner),
+                    "-filter_complex",
+                    f"[1:v]{vf}[v];[0:v][v]overlay=(W-w)/2:178:shortest=1",
+                    *encode_v(),
+                    str(out),
+                ]
+            )
+            if out.stat().st_size < MIN_BYTES:
+                rec.die(f"{out} is {out.stat().st_size} bytes, LinkedIn needs >75KB")
+            dest = ROOT / "docs" / f"linkedin-{name}.mp4"
+            dest.write_bytes(out.read_bytes())
+            print(f"reframed {dest} ({dest.stat().st_size} bytes)")
+
+
+def demo_scale(ws: rec.Ws) -> None:
+    """Bigger UI type for the square clip. Full window stays in frame."""
+    rec.js(
+        ws,
+        f"""(() => {{
+          const root = document.documentElement;
+          root.style.zoom = '1';
+          root.style.fontSize = '{DEMO_FONT_PX}px';
+          let st = document.getElementById('demo-type');
+          if (!st) {{
+            st = document.createElement('style');
+            st.id = 'demo-type';
+            document.head.appendChild(st);
+          }}
+          st.textContent = `
+            html {{ zoom: 1; }}
+            html, body {{ font-size: {DEMO_FONT_PX}px !important; }}
+            .text-xs, .text-sm, .chat-bubble, .input, textarea, button, .btn, .menu, .label, .navbar {{
+              font-size: {DEMO_FONT_PX}px !important;
+              line-height: 1.35 !important;
+            }}
+            #ai-q, [data-testid="ai-q"], #q, textarea, .input {{
+              font-size: {DEMO_FONT_PX}px !important;
+              min-height: 2.4rem !important;
+            }}
+            .chat-bubble {{ padding: 0.7rem 0.9rem !important; }}
+          `;
+          if (typeof connectTermFontSize === 'function') connectTermFontSize({TERM_FONT_PX});
+        }})()""",
+    )
+    rec.hold(0.25)
+
+
+def size_window(ws: rec.Ws) -> None:
+    try:
+        win = ws.call("Browser.getWindowForTarget")
+        wid = win.get("windowId")
+        if wid is None:
+            return
+        ws.call(
+            "Browser.setWindowBounds",
+            {
+                "windowId": wid,
+                "bounds": {
+                    "left": 40,
+                    "top": 40,
+                    "width": WIN_W,
+                    "height": WIN_H,
+                    "windowState": "normal",
+                },
+            },
+        )
+    except Exception as e:
+        print(f"  window bounds: {e}")
+    rec.hold(0.2)
 
 
 def empty_ai(ws: rec.Ws) -> None:
@@ -479,6 +662,8 @@ def boot() -> rec.Ws:
         "connect2 directory",
     )
     rec.wait_js(ws, """!!document.querySelector('#ai-q')""", 15, "ask ai")
+    size_window(ws)
+    demo_scale(ws)
     return ws
 
 
@@ -519,6 +704,7 @@ def find_app(dpy) -> tuple[int, int, int, bool]:
 def take(ws: rec.Ws, dpy, wid, w, h, redirected, name, title, prompt, pred, label, wait_s, hold_s):
     print(f"take {name}")
     empty_ai(ws)
+    demo_scale(ws)
     delay = 0.12
     head, tail = split_prompt(prompt, delay=delay, pre_enter_s=1.8)
     focus_ai(ws)
@@ -563,7 +749,12 @@ def take(ws: rec.Ws, dpy, wid, w, h, redirected, name, title, prompt, pred, labe
 
 def main() -> int:
     rec.OUT.parent.mkdir(parents=True, exist_ok=True)
+    flags = {a.lower() for a in sys.argv[1:]}
+    if "--reframe" in flags or "reframe" in flags:
+        reframe_existing()
+        return 0
     ws = boot()
+    demo_scale(ws)
     dpy = rec.x11.XOpenDisplay(None)
     if not dpy:
         rec.die("cannot open X display")
@@ -578,7 +769,7 @@ def main() -> int:
         rec.xfixes.XFixesHideCursor(dpy, root)
         hidden = True
     print(f"capturing {w}x{h} window {hex(wid)}", file=sys.stderr)
-    want = {a.lower() for a in sys.argv[1:] if not a.startswith("-")}
+    want = {a.lower() for a in sys.argv[1:] if not a.startswith("-")} - {"reframe"}
     try:
         for name, title, prompt, pred, label, wait_s, hold_s in CLIPS:
             if want and name not in want:
