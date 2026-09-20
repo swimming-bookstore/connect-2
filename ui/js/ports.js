@@ -164,6 +164,13 @@ window.connectTermFit = () => {
   mountTerm();
   requestFit();
 };
+window.connectTermFontSize = (n) => {
+  mountTerm();
+  if (!term) return false;
+  term.options.fontSize = Number(n) || 13;
+  requestFit();
+  return true;
+};
 
 const mo = new MutationObserver(() => {
   const el = document.getElementById("term");
